@@ -1,26 +1,32 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "./App.css";
 
 function App() {
-  const [message, setMessage] = useState("");
-  const [interviewStarted, setInterviewStarted] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
 
   const [resumeText, setResumeText] = useState("");
   const [skills, setSkills] = useState([]);
-  const [resumeScore, setResumeScore] = useState(0);
+  const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState([]);
 
-  useEffect(() => {
-    fetch("http://127.0.0.1:5000/")
-      .then((response) => response.json())
-      .then((data) => {
-        setMessage(data.message);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  }, []);
+  const [interviewStarted, setInterviewStarted] =
+    useState(false);
+
+  const questions = [
+    "What is the difference between ArrayList and LinkedList in Java?",
+    "Explain OOP concepts in Java.",
+    "What is the difference between SQL and MySQL?",
+    "Explain REST APIs.",
+    "What is React and why is it used?",
+  ];
+
+  const [currentQuestion, setCurrentQuestion] =
+    useState(0);
+
+  const [answer, setAnswer] = useState("");
+  const [answers, setAnswers] = useState([]);
+  const [interviewFinished, setInterviewFinished] =
+    useState(false);
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
@@ -28,7 +34,7 @@ function App() {
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      alert("Please select a resume first!");
+      alert("Please select a resume!");
       return;
     }
 
@@ -52,83 +58,97 @@ function App() {
         "Java",
         "Python",
         "JavaScript",
-        "React",
         "HTML",
         "CSS",
         "SQL",
         "MySQL",
         "Git",
         "GitHub",
-        "Node.js",
-        "Django",
         "REST API",
+        "React",
+        "Node.js",
         "C",
-        "C++",
       ];
 
       const foundSkills = skillList.filter((skill) =>
-        data.resume_text.toLowerCase().includes(skill.toLowerCase())
+        data.resume_text
+          .toLowerCase()
+          .includes(skill.toLowerCase())
       );
 
       setSkills(foundSkills);
 
-      let score = 40;
+      const calculatedScore = Math.min(
+        foundSkills.length * 10,
+        100
+      );
 
-      score += foundSkills.length * 5;
+      setScore(calculatedScore);
 
-      if (data.resume_text.includes("Internship"))
-        score += 10;
-
-      if (data.resume_text.includes("Project"))
-        score += 10;
-
-      if (data.resume_text.includes("Certification"))
-        score += 10;
-
-      if (score > 100) score = 100;
-
-      setResumeScore(score);
-
-      const tips = [];
-
-      if (!data.resume_text.includes("Project")) {
-        tips.push("Add Projects section.");
+      if (calculatedScore >= 80) {
+        setFeedback([
+          "✅ Strong technical profile",
+          "✅ Good skill coverage",
+          "✅ Ready for technical interviews",
+        ]);
+      } else {
+        setFeedback([
+          "⚠️ Add more projects",
+          "⚠️ Include certifications",
+          "⚠️ Improve technical skill section",
+        ]);
       }
-
-      if (!data.resume_text.includes("Certification")) {
-        tips.push("Add Certifications.");
-      }
-
-      if (foundSkills.length < 5) {
-        tips.push("Add more technical skills.");
-      }
-
-      if (
-        data.resume_text.includes("Project") &&
-        data.resume_text.includes("Certification")
-      ) {
-        tips.push("Resume looks strong.");
-      }
-
-      setFeedback(tips);
-
-      alert("Resume uploaded successfully!");
     } catch (error) {
       console.error(error);
-      alert("Upload failed!");
+      alert("Upload failed");
+    }
+  };
+
+  const handleNextQuestion = () => {
+    const updatedAnswers = [...answers, answer];
+
+    setAnswers(updatedAnswers);
+    setAnswer("");
+
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+    } else {
+      setInterviewFinished(true);
     }
   };
 
   return (
     <div className="container">
-      <h1>🎯 AI-Assisted Technical Interview Companion</h1>
+      <h1 className="title">
+        🚀 AI-Assisted Technical Interview Companion
+      </h1>
 
-      <h2>{message}</h2>
+      <p className="subtitle">
+        Smart Resume Analysis • Mock Interviews • AI
+        Feedback
+      </p>
+
+      <div className="stats">
+        <div className="stat-card">
+          <h2>📄</h2>
+          <p>Resume Analyzer</p>
+        </div>
+
+        <div className="stat-card">
+          <h2>🎯</h2>
+          <p>Mock Interview</p>
+        </div>
+
+        <div className="stat-card">
+          <h2>🤖</h2>
+          <p>AI Feedback</p>
+        </div>
+      </div>
 
       {!interviewStarted ? (
-        <>
+        <div className="dashboard">
           <div className="card">
-            <h2>Mock Interview</h2>
+            <h2>🎤 Mock Interview</h2>
 
             <p>
               Practice technical interviews with AI.
@@ -144,7 +164,7 @@ function App() {
           </div>
 
           <div className="card">
-            <h2>Resume Analysis</h2>
+            <h2>📄 Resume Analysis</h2>
 
             <input
               type="file"
@@ -152,115 +172,127 @@ function App() {
               onChange={handleFileChange}
             />
 
-            {selectedFile && (
-              <p>
-                <strong>Selected File:</strong>{" "}
-                {selectedFile.name}
-              </p>
-            )}
+            <br />
+            <br />
 
             <button onClick={handleUpload}>
               Upload Resume
             </button>
 
-            <p>
-              Upload your resume and get feedback.
-            </p>
-          </div>
+            {resumeText && (
+              <>
+                <h3>📊 Resume Score</h3>
 
-          {resumeText && (
-            <div className="card">
-              <h2>📄 Resume Text</h2>
+                <div className="score">
+                  {score}/100
+                </div>
 
-              <textarea
-                rows="12"
-                cols="80"
-                value={resumeText}
-                readOnly
-              />
+                <h3>🛠 Skills Detected</h3>
 
-              <h2>🛠 Skills Detected</h2>
-
-              {skills.length > 0 ? (
-                <ul>
+                <div>
                   {skills.map((skill, index) => (
-                    <li key={index}>
+                    <span
+                      key={index}
+                      className="skill"
+                    >
                       {skill}
-                    </li>
+                    </span>
                   ))}
-                </ul>
-              ) : (
-                <p>No skills detected.</p>
-              )}
-
-              <h2>📊 Resume Score</h2>
-
-              <div
-                style={{
-                  fontSize: "32px",
-                  fontWeight: "bold",
-                  color: "green",
-                }}
-              >
-                {resumeScore}/100
-              </div>
-
-              <h2>🤖 AI Feedback</h2>
-
-              <ul
-                style={{
-                  textAlign: "left",
-                  maxWidth: "500px",
-                  margin: "auto",
-                }}
-              >
-                {feedback.map((item, index) => (
-                  <li key={index}>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+                </div>
+              </>
+            )}
+          </div>
 
           <div className="card">
-            <h2>Interview Feedback</h2>
+            <h2>🤖 AI Feedback</h2>
 
-            <p>
-              Get strengths and improvement areas.
-            </p>
+            {feedback.length > 0 ? (
+              <ul style={{ textAlign: "left" }}>
+                {feedback.map(
+                  (item, index) => (
+                    <li key={index}>
+                      {item}
+                    </li>
+                  )
+                )}
+              </ul>
+            ) : (
+              <p>
+                Upload a resume to get AI
+                feedback.
+              </p>
+            )}
           </div>
-        </>
+        </div>
       ) : (
         <div className="card">
-          <h2>Mock Interview Round</h2>
+          {!interviewFinished ? (
+            <>
+              <h2>🎯 Mock Interview Round</h2>
 
-          <h3>Question 1</h3>
-          <p>
-            What is the difference between
-            ArrayList and LinkedList in Java?
-          </p>
+              <h3>
+                Question {currentQuestion + 1}
+              </h3>
 
-          <h3>Question 2</h3>
-          <p>
-            Explain OOP concepts in Java.
-          </p>
+              <p>
+                {
+                  questions[currentQuestion]
+                }
+              </p>
 
-          <h3>Question 3</h3>
-          <p>
-            What is the difference between
-            SQL and MySQL?
-          </p>
+              <textarea
+                rows="6"
+                cols="60"
+                placeholder="Type your answer here..."
+                value={answer}
+                onChange={(e) =>
+                  setAnswer(
+                    e.target.value
+                  )
+                }
+              />
 
-          <h3>Question 4</h3>
-          <p>
-            Explain REST APIs.
-          </p>
+              <br />
+              <br />
 
-          <h3>Question 5</h3>
-          <p>
-            What is React and why is it used?
-          </p>
+              <button
+                onClick={
+                  handleNextQuestion
+                }
+              >
+                {currentQuestion ===
+                  questions.length - 1
+                  ? "Finish Interview"
+                  : "Next Question"}
+              </button>
+            </>
+          ) : (
+            <>
+              <h2>
+                🎉 Interview Completed
+              </h2>
+
+              <p>
+                You answered{" "}
+                {answers.length} questions.
+              </p>
+
+              <button
+                onClick={() => {
+                  setInterviewStarted(
+                    false
+                  );
+                  setInterviewFinished(
+                    false
+                  );
+                  setCurrentQuestion(0);
+                  setAnswers([]);
+                }}
+              >
+                Back to Dashboard
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
